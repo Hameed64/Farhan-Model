@@ -1,0 +1,101 @@
+###########################################################################
+#                     Python codes for Farhan Model (FM)                  #
+###########################################################################
+#
+# These functions are successfully tested for face recognition.
+# They can be used for other pattern recognition branches.
+# For more details, please refer to the following article:
+###########################################################################
+# 
+# H. Farhan, M. Al-Muifraje, and T. Saeed, "A new model for pattern
+# recognition", Computers and Electrical Engineering, vol. 83, no. 2020, p.
+# 106602, Elsevier, 2020. https://doi.org/10.1016/j.compeleceng.2020.106602
+# 
+############################################################################
+
+import numpy as np
+
+############################################################################
+#
+# The CFM_train function is used to train multiple observation vectors
+# that must be concatenated into a 2D array. Each column of this array
+# represents one observation vector. It calculates the mean (mu) and the
+# covariance (si) of the data, which represent the trained model. mu is
+# calculated across each row in the data array, and the result is a
+# column vector. In order to obtain si, the data array is transposed,
+# and the result is a square matrix that has a number of rows equals the
+# number of rows in mu vector.
+#
+############################################################################
+
+def CFM_train(data):
+
+    mu = data.mean(axis=1)
+    si = np.cov(data)
+
+    return mu, si 
+
+#############################################################################
+#
+# The "CFM_test" function is used to calculate the distance between the testing 
+# data and the trained models that were obtained using CFM_train function.
+#
+#############################################################################
+
+def CFM_test(data, mu, si):
+    
+    IS = np.linalg.inv(si)
+    dd = np.dot(IS, data)
+    mm = np.dot(IS, mu)
+    da = (data * dd).sum(axis=0)
+    ma = (mu * mm).sum(axis=0)
+    D = ma + da.T - 2*np.dot(data.T, mm)
+    U = np.linalg.cholesky(si)
+    logdet = 2*(np.log(np.diag(U))).sum(axis=0)
+    bn = -(logdet + D.mean())
+    
+    return bn
+
+########################################################################
+#
+# The "DFM_train" function is used to train multiple observation vectors
+# that must be concatenated into a 2D array. It provides a 1D vector
+# (H) that represents the trained model. R is the range of symbols that
+# the data array includes.
+#
+########################################################################
+
+def DFM_train(data, R):
+    eps = 0.0001
+    L = len(data)
+ 
+    P = []
+    for j in range(R):
+        r = j + 1
+        h = data[data==r].size
+        P.append(h)
+    H = np.array(P) / L
+    H = np.maximum(H, eps)
+
+    return H
+
+########################################################################
+#
+# The "DFM_test" function is used to calculate the log of the
+# probability of the testing data with the H parameter of each subject,
+# which is previously obtained using DFM_train function. It provides a
+# single value (loglik) for each subject. 
+#
+########################################################################
+
+def DFM_test(data, EM):
+    L = len(data)
+    loglik = 0
+    #T = np.array(EM)
+    for i in range(L):
+        s = EM[data[i]-1]
+        ss = float(format(s, '.4f'))
+        loglik = loglik + np.log(ss)
+        loglik = float(format(loglik, '.4f'))
+
+    return loglik
